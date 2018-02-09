@@ -27,6 +27,7 @@ extern crate slog;
 
 extern crate witnet_config as config;
 extern crate witnet_core as core;
+extern crate witnet_p2p as p2p;
 extern crate witnet_util as util;
 extern crate witnet_wit as wit;
 
@@ -143,7 +144,37 @@ fn main() {
         }
     }
 
-    fn server_command(_server_args: &ArgMatches, _global_config: GlobalConfig) {
-        info!(LOGGER, "Starting the Witnet server...")
+    /// Handles the server part of the command line, mostly running, starting and
+    /// stopping the Witnet blockchain server. Processes all the command line
+    /// arguments to build a proper configuration and runs Witnet with that
+    /// configuration.
+    fn server_command(server_args: &ArgMatches, global_config: GlobalConfig) {
+        info!(LOGGER, "Starting the Witnet server...");
+
+        // Just get defaults from the global config
+        let mut server_config = global_config.members.unwrap().server;
+
+        // Change P2P port if specified by configuration
+        if let Some(port) = server_args.value_of("port") {
+            server_config.p2p_config.port = port.parse().unwrap();
+        }
+
+        // If the configuration specifies one or more seed nodes:
+        //  - Change seeding type to "List"
+        //  - Replace the seeds list for the ones specified
+        if let Some(seeds) = server_args.values_of("seed") {
+            server_config.p2p_config.seeding_type = p2p::Seeding::List;
+            server_config.p2p_config.seeding_peers = Some(seeds.map(|s| s.to_string()).collect());
+        }
+
+        match server_args.subcommand() {
+            ("run", _) => {
+                wit::Server::start(server_config).unwrap();
+            }
+            (cmd, _) => {
+                println!(":: {:?}", server_args);
+                panic!("Unknown server command '{}', use 'grin help server' for details", cmd);
+            }
+        }
     }
 }

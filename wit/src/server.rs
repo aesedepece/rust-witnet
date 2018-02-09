@@ -44,7 +44,7 @@ impl Server {
     /// Instantiates and starts a new Witnet server.
     pub fn start(config: ServerConfig) -> Result<Server, Error> {
         //let mut mining_config = config.mining_config.clone();
-        let serv = Server::new(config)?;
+        let _serv = Server::new(config)?;
         // TODO mining start
 
         loop {

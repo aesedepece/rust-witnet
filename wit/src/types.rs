@@ -39,25 +39,6 @@ pub enum Error {
     Wallet(wallet::Error),
 }
 
-/// Type of seeding the server will use to find other peers on the network.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum Seeding {
-    /// No seeding, mostly for tests that programmatically connect
-    None,
-    /// A list of seed addresses provided to the server
-    List,
-    /// Automatically download a text file with a list of server addresses
-    WebStatic,
-    /// Mostly for tests, where connections are initiated programmatically
-    Programmatic,
-}
-
-impl Default for Seeding {
-    fn default() -> Seeding {
-        Seeding::None
-    }
-}
-
 /// Full server configuration, aggregating configurations required for the
 /// different components.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,12 +50,8 @@ pub struct ServerConfig {
 	#[serde(default)]
     pub chain_type: ChainTypes,
 
-    /// Which method will be used to get the list of seed nodes for initial bootstrap.
-	#[serde(default)]
-	pub seeding_type: Seeding,
-
     /// Configuration for the peer-to-peer server
-    //TODO pub p2p_config: p2p::P2PConfig,
+    pub p2p_config: p2p::P2PConfig,
 
     /// Configuration for the mining daemon
     //TODO pub mining_config: Option<pow::types::MinerConfig>,
@@ -93,8 +70,7 @@ impl Default for ServerConfig {
     fn default() -> ServerConfig {
         ServerConfig {
             db_root: ".wit".to_string(),
-            seeding_type: Seeding::default(),
-            //TODO p2p_config: p2p::P2PConfig::default(),
+            p2p_config: p2p::P2PConfig::default(),
             //TODO mining_config: Some(pow::types::MinerConfig::default()),
             chain_type: ChainTypes::default(),
             //TODO pool_config: PoolConfig::default(),

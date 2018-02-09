@@ -28,9 +28,13 @@
 #![deny(non_snake_case)]
 #![deny(unused_mut)]
 
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+
 extern crate witnet_core as core;
 extern crate witnet_store as store;
 
 mod types;
 
-pub use types::{Error};
+pub use types::{Error, P2PConfig, Seeding};

@@ -11,6 +11,7 @@ path = "src/bin/witnet.rs"
 witnet_config = { path = "./config" }
 witnet_core = { path = "./core" }
 witnet_util = { path = "./util" }
+witnet_p2p = { path = "./p2p" }
 witnet_wit = { path = "./wit" }
 
 serde = "~1.0.8"
