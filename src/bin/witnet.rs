@@ -22,6 +22,7 @@
 //! Main for building the binary of a Witnet peer-to-peer node
 
 extern crate clap;
+extern crate daemonize;
 #[macro_use]
 extern crate slog;
 
@@ -35,8 +36,10 @@ mod client;
 
 use std::thread;
 use std::time::Duration;
+use std::env::current_dir;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
+use daemonize::Daemonize;
 
 use config::GlobalConfig;
 use core::global;
@@ -171,7 +174,23 @@ fn main() {
             ("run", _) => {
                 wit::Server::start(server_config).unwrap();
             }
-            ("stop", _) => println!("TODO. Just 'kill $pid' for now. Maybe /tmp/wit.pid is $pid"),
+            ("start", _) => {
+                let daemonize = Daemonize::new()
+                    .pid_file("/tmp/witnet.pid")
+                    .chown_pid_file(true)
+                    .working_directory(current_dir().unwrap())
+                    .privileged_action(move || {
+                        wit::Server::start(server_config.clone()).unwrap();
+                        loop {
+                            thread::sleep(Duration::from_secs(60));
+                        }
+                    });
+                match daemonize.start() {
+                    Ok(_) => info!(LOGGER, "Witnet server successfully started."),
+                    Err(e) => error!(LOGGER, "Error starting: {}", e),
+                }
+            }
+            ("stop", _) => println!("TODO. Just 'kill $pid' for now. Maybe /tmp/witnet.pid is $pid"),
             (cmd, _) => {
                 println!(":: {:?}", server_args);
                 panic!("Unknown server command '{}', use 'grin help server' for details", cmd);
