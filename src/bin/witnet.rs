@@ -171,6 +171,7 @@ fn main() {
             ("run", _) => {
                 wit::Server::start(server_config).unwrap();
             }
+            ("stop", _) => println!("TODO. Just 'kill $pid' for now. Maybe /tmp/wit.pid is $pid"),
             (cmd, _) => {
                 println!(":: {:?}", server_args);
                 panic!("Unknown server command '{}', use 'grin help server' for details", cmd);
