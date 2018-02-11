@@ -13,32 +13,14 @@
 //You should have received a copy of the GNU General Public License
 // along with Rust-Witnet. If not, see <http://www.gnu.org/licenses/>.
 //
-//This file is based on chain/src/lib.rs from
+//This file is based on chain/src/sumtree.rs from
 // <https://github.com/mimblewimble/grin>,
 // originally developed by The Grin Developers and distributed under the
 // Apache License, Version 2.0. You may obtain a copy of the License at
 // <http://www.apache.org/licenses/LICENSE-2.0>.
 
-//! The block chain itself, validates and accepts new blocks, handles reorgs.
-
-#![deny(non_upper_case_globals)]
-#![deny(non_camel_case_types)]
-#![deny(non_snake_case)]
-#![deny(unused_mut)]
-#![deny(missing_docs)]
-
-#[macro_use]
-extern crate bitflags;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-
-extern crate witnet_core as core;
-extern crate witnet_store;
-
-mod chain;
-mod fast_merkle;
-pub mod types;
-
-pub use chain::Chain;
-pub use types::{Error};
+/// An easy to manipulate structure holding the merkle trees necessary to
+/// validate blocks and capturing the UTXO set.
+pub struct Trees {
+    // TODO
+}
