@@ -34,8 +34,9 @@ extern crate slog;
 
 extern crate witnet_chain as chain;
 extern crate witnet_core as core;
-extern crate witnet_store as store;
 extern crate witnet_p2p as p2p;
+extern crate witnet_pool as pool;
+extern crate witnet_store as store;
 extern crate witnet_util as util;
 extern crate witnet_wallet as wallet;
 

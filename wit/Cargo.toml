@@ -11,7 +11,8 @@ slog = "~2.1.1"
 
 witnet_chain = { path = "../chain" }
 witnet_core = { path = "../core" }
-witnet_store = { path = "../store" }
 witnet_p2p = { path = "../p2p" }
+witnet_pool = { path = "../pool" }
+witnet_store = { path = "../store" }
 witnet_util = { path = "../util" }
 witnet_wallet = { path = "../wallet" }
