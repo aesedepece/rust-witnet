@@ -21,6 +21,9 @@ use std::{error, fmt, num};
 
 use util::secp;
 
+// Size of an identifier in bytes
+pub const IDENTIFIER_SIZE: usize = 10;
+
 /// An ExtKey error
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Error {
@@ -65,5 +68,14 @@ impl error::Error for Error {
             Error::Secp(_) => "keychain: secp error",
             Error::ParseIntError(_) => "keychain: error parsing int",
         }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd)]
+pub struct Identifier([u8; IDENTIFIER_SIZE]);
+
+impl AsRef<[u8]> for Identifier {
+    fn as_ref(&self) -> &[u8] {
+        &self.0.as_ref()
     }
 }

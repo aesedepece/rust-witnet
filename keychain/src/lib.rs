@@ -23,5 +23,6 @@ extern crate witnet_util as util;
 
 mod extkey;
 
+pub use extkey::{Identifier, IDENTIFIER_SIZE};
 pub mod keychain;
 pub use keychain::{Error};
