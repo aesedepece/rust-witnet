@@ -44,6 +44,53 @@ extern crate serde_derive;
 pub extern crate secp256k1zkp as secp_;
 pub use secp_ as secp;
 
+// other utils
+use std::cell::{Ref, RefCell};
+
+pub mod hex;
+pub use hex::{from_hex, to_hex};
+
+/// Encapsulation of a RefCell<Option<T>> for one-time initialization after
+/// construction. This implementation will purposefully fail hard if not used
+/// properly, for example if it's not initialized before being first used
+/// (borrowed).
+#[derive(Clone)]
+pub struct OneTime<T> {
+    /// inner
+    inner: RefCell<Option<T>>,
+}
+
+unsafe impl<T> Sync for OneTime<T> {}
+unsafe impl<T> Send for OneTime<T> {}
+
+impl<T> OneTime<T> {
+    /// Builds a new uninitialized OneTime.
+    pub fn new() -> OneTime<T> {
+        OneTime {
+            inner: RefCell::new(None),
+        }
+    }
+
+    /// Initializes the OneTime, should only be called once after construction.
+    pub fn init(&self, value: T) {
+        let mut inner_mut = self.inner.borrow_mut();
+        *inner_mut = Some(value);
+    }
+
+    /// Whether the OneTime has been initialized
+    pub fn is_initialized(&self) -> bool {
+        match self.inner.try_borrow() {
+            Ok(inner) => inner.is_some(),
+            Err(_) => false,
+        }
+    }
+
+    /// Borrows the OneTime, should only be called after initialization.
+    pub fn borrow(&self) -> Ref<T> {
+        Ref::map(self.inner.borrow(), |o| o.as_ref().unwrap())
+    }
+}
+
 // Logging related
 pub mod logger;
 pub use logger::{init_logger, init_test_logger, LOGGER};
