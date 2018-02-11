@@ -13,46 +13,23 @@
 //You should have received a copy of the GNU General Public License
 // along with Rust-Witnet. If not, see <http://www.gnu.org/licenses/>.
 //
-//This file is based on p2p/src/lib.rs from
+//This file is based on p2p/src/serv.rs from
 // <https://github.com/mimblewimble/grin>,
 // originally developed by The Grin Developers and distributed under the
 // Apache License, Version 2.0. You may obtain a copy of the License at
 // <http://www.apache.org/licenses/LICENSE-2.0>.
 
+use std::sync::Arc;
 
-//! Networking code to connect to other peers and exchange block, objects,
-//! etc.
+use handshake::Handshake;
+use peers::Peers;
+use types::*;
 
-#![deny(non_upper_case_globals)]
-#![deny(non_camel_case_types)]
-#![deny(non_snake_case)]
-#![deny(unused_mut)]
-
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate enum_primitive;
-extern crate num;
-extern crate rand;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate slog;
-
-extern crate witnet_core as core;
-extern crate witnet_store;
-extern crate witnet_util as util;
-
-mod conn;
-mod handshake;
-mod msg;
-mod peer;
-mod peers;
-mod server;
-mod store;
-mod types;
-
-pub use peers::Peers;
-pub use server::Server;
-pub use types::{Error, P2PConfig, Seeding};
+/// P2P server implementation, handling bootstrapping to find and connect to
+/// peers, receiving connections from other peers and keep track of all of them.
+pub struct Server {
+    config: P2PConfig,
+    capabilities: Capabilities,
+    handshake: Arc<Handshake>,
+    pub peers: Peers,
+}

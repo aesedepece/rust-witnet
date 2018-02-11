@@ -13,46 +13,26 @@
 //You should have received a copy of the GNU General Public License
 // along with Rust-Witnet. If not, see <http://www.gnu.org/licenses/>.
 //
-//This file is based on p2p/src/lib.rs from
+//This file is based on p2p/src/handshake.rs from
 // <https://github.com/mimblewimble/grin>,
 // originally developed by The Grin Developers and distributed under the
 // Apache License, Version 2.0. You may obtain a copy of the License at
 // <http://www.apache.org/licenses/LICENSE-2.0>.
 
+use std::collections::VecDeque;
+use std::sync::{Arc, RwLock};
 
-//! Networking code to connect to other peers and exchange block, objects,
-//! etc.
+use core::core::hash::Hash;
+use types::*;
 
-#![deny(non_upper_case_globals)]
-#![deny(non_camel_case_types)]
-#![deny(non_snake_case)]
-#![deny(unused_mut)]
-
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate enum_primitive;
-extern crate num;
-extern crate rand;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate slog;
-
-extern crate witnet_core as core;
-extern crate witnet_store;
-extern crate witnet_util as util;
-
-mod conn;
-mod handshake;
-mod msg;
-mod peer;
-mod peers;
-mod server;
-mod store;
-mod types;
-
-pub use peers::Peers;
-pub use server::Server;
-pub use types::{Error, P2PConfig, Seeding};
+/// Handles the handshake negotiation when two peers connect and decides on
+/// protocol.
+pub struct Handshake {
+    /// Ring buffer of nonces sent to detect self connections without requiring
+    /// a node id.
+    nonces: Arc<RwLock<VecDeque<u64>>>,
+    /// The genesis block header of the chain seen by this node.
+    /// We only want to connect to other nodes seeing the same chain (forks are ok).
+    genesis: Hash,
+    config: P2PConfig,
+}

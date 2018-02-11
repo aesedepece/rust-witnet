@@ -5,8 +5,14 @@ authors = ["Adán Sánchez de Pedro Crespo <adan@witnet.io>"]
 workspace = ".."
 
 [dependencies]
+bitflags = "~1.0.1"
+enum_primitive = "~0.1.1"
+num = "0.1.41"
+rand = "~0.4.2"
 serde = "~1.0.27"
 serde_derive = "~1.0.27"
+slog = "~2.1.1"
 
 witnet_core = { path = "../core" }
 witnet_store = { path = "../store" }
+witnet_util = { path = "../util" }

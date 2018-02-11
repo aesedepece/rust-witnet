@@ -20,11 +20,13 @@
 // <http://www.apache.org/licenses/LICENSE-2.0>.
 
 use std::io;
-use std::net::IpAddr;
+use std::net::{IpAddr, SocketAddr};
+use std::sync::mpsc;
 
-use core::core::hash::Hash;
+use core::core::{self, Hash, CompactBlock};
 use core::ser;
 use store;
+use witnet_store;
 
 #[derive(Debug)]
 pub enum Error {
@@ -35,7 +37,7 @@ pub enum Error {
     Banned,
     ConnectionClose,
     Timeout,
-    Store(store::Error),
+    Store(witnet_store::Error),
     PeerWithSelf,
     ProtocolMismatch {
         us: u32,
@@ -98,4 +100,76 @@ impl Default for P2PConfig {
             peers_deny: None,
         }
     }
+}
+
+bitflags! {
+  /// Options for what type of interaction a peer supports.
+  #[derive(Serialize, Deserialize)]
+  pub struct Capabilities: u32 {
+	/// We don't know (yet) what the peer can do.
+	const UNKNOWN = 0b00000000;
+	/// Full archival node, has the whole history without any pruning.
+	const FULL_HIST = 0b00000001;
+	/// Can provide block headers and the UTXO set for some recent-enough
+	/// height.
+	const UTXO_HIST = 0b00000010;
+	/// Can provide a list of healthy peers
+	const PEER_LIST = 0b00000100;
+
+	const FULL_NODE = Capabilities::FULL_HIST.bits | Capabilities::UTXO_HIST.bits | Capabilities::PEER_LIST.bits;
+  }
+}
+
+/// General information about a connected peer that's useful to other modules.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PeerInfo {
+    pub capabilities: Capabilities,
+    pub user_agent: String,
+    pub version: u32,
+    pub addr: SocketAddr,
+}
+
+/// Bridge between the networking layer and the rest of the system. Handles the
+/// forwarding or querying of blocks and transactions from the network among
+/// other things.
+pub trait ChainAdapter: Sync + Send {
+    /// Current total height
+    fn total_height(&self) -> u64;
+
+    /// A valid transaction has been received from one of our peers
+    fn transaction_received(&self, tx: core::Transaction);
+
+    /// A block has been received from one of our peers. Returns true if the
+    /// block could be handled properly and is not deemed defective by the
+    /// chain. Returning false means the block will never be valid and
+    /// may result in the peer being banned.
+    fn block_received(&self, b: core::Block, addr: SocketAddr) -> bool;
+
+    fn compact_block_received(&self, cb: core::CompactBlock, addr: SocketAddr) -> bool;
+
+    fn header_received(&self, bh: core::BlockHeader, addr: SocketAddr) -> bool;
+
+    /// A set of block header has been received, typically in response to a
+    /// block
+    /// header request.
+    fn headers_received(&self, bh: Vec<core::BlockHeader>, addr: SocketAddr);
+
+    /// Finds a list of block headers based on the provided locator. Tries to
+    /// identify the common chain and gets the headers that follow it
+    /// immediately.
+    fn locate_headers(&self, locator: Vec<Hash>) -> Vec<core::BlockHeader>;
+
+    /// Gets a full block by its hash.
+    fn get_block(&self, h: Hash) -> Option<core::Block>;
+}
+
+/// Additional methods required by the protocol that don't need to be
+/// externally implemented.
+pub trait NetAdapter: ChainAdapter {
+    /// Find good peers we know with the provided capability and return their
+    /// addresses.
+    fn find_peer_addrs(&self, capab: Capabilities) -> Vec<SocketAddr>;
+
+    /// A list of peers has been received from one of our peers.
+    fn peer_addrs_received(&self, Vec<SocketAddr>);
 }

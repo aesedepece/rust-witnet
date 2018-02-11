@@ -13,46 +13,34 @@
 //You should have received a copy of the GNU General Public License
 // along with Rust-Witnet. If not, see <http://www.gnu.org/licenses/>.
 //
-//This file is based on p2p/src/lib.rs from
+//This file is based on p2p/src/msg.rs from
 // <https://github.com/mimblewimble/grin>,
 // originally developed by The Grin Developers and distributed under the
 // Apache License, Version 2.0. You may obtain a copy of the License at
 // <http://www.apache.org/licenses/LICENSE-2.0>.
 
+//! Message types that transit over the network and related serialization code.
 
-//! Networking code to connect to other peers and exchange block, objects,
-//! etc.
+use num::FromPrimitive;
 
-#![deny(non_upper_case_globals)]
-#![deny(non_camel_case_types)]
-#![deny(non_snake_case)]
-#![deny(unused_mut)]
-
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate enum_primitive;
-extern crate num;
-extern crate rand;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate slog;
-
-extern crate witnet_core as core;
-extern crate witnet_store;
-extern crate witnet_util as util;
-
-mod conn;
-mod handshake;
-mod msg;
-mod peer;
-mod peers;
-mod server;
-mod store;
-mod types;
-
-pub use peers::Peers;
-pub use server::Server;
-pub use types::{Error, P2PConfig, Seeding};
+/// Types of messages
+enum_from_primitive! {
+	#[derive(Debug, Clone, Copy, PartialEq)]
+	pub enum Type {
+		Error,
+		Hand,
+		Shake,
+		Ping,
+		Pong,
+		GetPeerAddrs,
+		PeerAddrs,
+		GetHeaders,
+		Header,
+		Headers,
+		GetBlock,
+		Block,
+		GetCompactBlock,
+		CompactBlock,
+		Transaction,
+	}
+}
