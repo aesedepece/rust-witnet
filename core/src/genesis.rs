@@ -13,42 +13,32 @@
 //You should have received a copy of the GNU General Public License
 // along with Rust-Witnet. If not, see <http://www.gnu.org/licenses/>.
 //
-//This file is based on core/src/lib.rs from
+//This file is based on core/src/genesis.rs from
 // <https://github.com/mimblewimble/grin>,
 // originally developed by The Grin Developers and distributed under the
 // Apache License, Version 2.0. You may obtain a copy of the License at
 // <http://www.apache.org/licenses/LICENSE-2.0>.
 
-//! Implementation of the Witnet protocol as proposed in the Witnet whitepaper:
-//! <https://arxiv.org/pdf/1711.09756.pdf>
+//! Definition of the genesis block. Placeholder for now.
 
-#![deny(non_upper_case_globals)]
-#![deny(non_camel_case_types)]
-#![deny(non_snake_case)]
-#![deny(unused_mut)]
-#![deny(missing_docs)]
+use time;
 
-#[macro_use]
-extern crate bitflags;
-extern crate byteorder;
-#[macro_use]
-extern crate lazy_static;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate sha2;
-#[macro_use]
-extern crate slog;
-extern crate time;
+use core;
 
-extern crate witnet_keychain as keychain;
-extern crate witnet_util as util;
-
-#[macro_use]
-mod macros;
-
-pub mod consensus;
-pub mod core;
-pub mod genesis;
-pub mod global;
-pub mod ser;
+/// Genesis block definition for development networks.
+pub fn genesis_dev() -> core::Block {
+    core::Block {
+        header: core::BlockHeader {
+            epoch: 0,
+            previous: core::hash::Hash([0xff; 32]),
+            timestamp: time::Tm {
+                tm_year: 1997 - 1900,
+                tm_mon: 7,
+                tm_mday: 4,
+                ..time::empty_tm()
+            },
+            ..Default::default()
+        },
+        transactions: vec![],
+    }
+}

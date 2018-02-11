@@ -26,9 +26,37 @@
 //! enough, consensus-relevant constants and short functions should be kept
 //! here.
 
+/// A wit is divisible to 10^9, following the SI prefixes
+pub const WIT_BASE: u64 = 1_000_000_000;
+/// Milliwit, a thousand of a wit
+pub const MILLI_WIT: u64 = WIT_BASE / 1_000;
+/// Microwit, a thousand of a milliwit
+pub const MICRO_WIT: u64 = MILLI_WIT / 1_000;
+/// Nanowit, smallest unit, takes a billion to make a wit
+pub const NANO_WIT: u64 = 1;
+
+/// The block subsidy amount, 50 wit per epoch
+pub const REWARD: u64 = 50 * WIT_BASE;
+
+/// Duration of each chain epoch, in seconds
+pub const EPOCH_SEC: u64 = 90;
+
+/// The maximum size we're willing to accept for any message. Enforced by the
+/// peer-to-peer networking layer only for DoS protection.
+pub const MAX_MSG_LEN: u64 = 20_000_000;
+
+/// Total maximum block weight
+pub const MAX_BLOCK_WEIGHT: usize = 80_000;
+
 /// Consensus errors
 #[derive(Clone, Debug, PartialEq)]
 pub enum Error {
     /// Inputs/outputs/kernels must be sorted lexicographically.
     SortError,
+}
+
+/// Consensus rule that collections of items are sorted lexicographically.
+pub trait VerifySortOrder<T> {
+    /// Verify a collection of items is sorted as required.
+    fn verify_sort_order(&self) -> Result<(), Error>;
 }

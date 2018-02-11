@@ -19,10 +19,56 @@
 
 //! Transaction structures.
 
+use core::input::Input;
+use core::output::Output;
+#[macro_use]
+use macros;
+use ser::{self, read_and_verify_sorted, Readable, Reader, Writeable, WriteableSorted, Writer};
+
 /// Errors thrown by transaction validation.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Error {
     //TODO
     /// Any other error thrown by TX validation code.
     Other(String),
+}
+
+/// A transaction
+#[derive(Debug, Clone)]
+pub struct Transaction {
+    /// Set of inputs spent by the transaction.
+    pub inputs: Vec<Input>,
+    /// Set of outputs the transaction produces.
+    pub outputs: Vec<Output>,
+    /// Fee paid by the transaction.
+    pub fee: u64,
+    /// Transaction is not valid before this chain height.
+    pub lock_height: u64,
+}
+
+/// Implementation of Writeable for a fully blinded transaction, defines how to
+/// write the transaction as binary.
+impl Writeable for Transaction {
+    // TODO: adapt to what will be defined in of the first Witnet WIPs.
+    fn write<W: Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
+        ser_multiwrite!(
+			writer,
+			[write_u64, self.fee],
+			[write_u64, self.lock_height]
+		);
+        ser_multiwrite!(
+			writer,
+			[write_u64, self.inputs.len() as u64],
+			[write_u64, self.outputs.len() as u64]
+		);
+
+        // Consensus rule that everything is sorted in lexicographical order on the wire.
+        let mut inputs = self.inputs.clone();
+        let mut outputs = self.outputs.clone();
+
+        inputs.write_sorted(writer)?;
+        outputs.write_sorted(writer)?;
+
+        Ok(())
+    }
 }

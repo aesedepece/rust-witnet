@@ -5,6 +5,14 @@ authors = ["Adán Sánchez de Pedro Crespo <adan@witnet.io>"]
 workspace = ".."
 
 [dependencies]
+bitflags = "~1.0.1"
+byteorder = "~1.2.1"
+lazy_static = "~1.0.0"
 serde = "~1.0.27"
 serde_derive = "~1.0.27"
-lazy_static = "~1.0.0"
+sha2 = "~0.7.0"
+slog = "~2.1.1"
+time = "~0.1.39"
+
+witnet_keychain = { path = "../keychain" }
+witnet_util = { path = "../util" }

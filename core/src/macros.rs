@@ -13,42 +13,25 @@
 //You should have received a copy of the GNU General Public License
 // along with Rust-Witnet. If not, see <http://www.gnu.org/licenses/>.
 //
-//This file is based on core/src/lib.rs from
+//This file is based on core/src/macros.rs from
 // <https://github.com/mimblewimble/grin>,
 // originally developed by The Grin Developers and distributed under the
 // Apache License, Version 2.0. You may obtain a copy of the License at
 // <http://www.apache.org/licenses/LICENSE-2.0>.
 
-//! Implementation of the Witnet protocol as proposed in the Witnet whitepaper:
-//! <https://arxiv.org/pdf/1711.09756.pdf>
+//! Generic macros used here and there to simplify and make code more
+//! readable.
 
-#![deny(non_upper_case_globals)]
-#![deny(non_camel_case_types)]
-#![deny(non_snake_case)]
-#![deny(unused_mut)]
-#![deny(missing_docs)]
-
-#[macro_use]
-extern crate bitflags;
-extern crate byteorder;
-#[macro_use]
-extern crate lazy_static;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate sha2;
-#[macro_use]
-extern crate slog;
-extern crate time;
-
-extern crate witnet_keychain as keychain;
-extern crate witnet_util as util;
-
-#[macro_use]
-mod macros;
-
-pub mod consensus;
-pub mod core;
-pub mod genesis;
-pub mod global;
-pub mod ser;
+/// Eliminate some of the boilerplate of serialization (package ser) by
+/// passing directly pairs of writer function and data to write.
+/// Example before:
+///   try!(reader.write_u64(42));
+///   try!(reader.write_u32(100));
+/// Example after:
+///   ser_multiwrite!(writer, [write_u64, 42], [write_u32, 100]);
+#[macro_export]
+macro_rules! ser_multiwrite {
+  ($wrtr:ident, $([ $write_call:ident, $val:expr ]),* ) => {
+    $( try!($wrtr.$write_call($val)) );*
+  }
+}

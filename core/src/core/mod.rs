@@ -21,4 +21,13 @@
 
 pub mod block;
 pub mod hash;
+pub mod id;
 pub mod transaction;
+pub mod input;
+pub mod output;
+
+pub use self::hash::{Hash, ZERO_HASH};
+pub use self::id::ShortId;
+pub use self::block::{Block, BlockHeader, CompactBlock};
+pub use self::transaction::Transaction;
+pub use self::output::{Output, OutputIdentifier};
