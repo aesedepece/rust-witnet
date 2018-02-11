@@ -11,31 +11,34 @@
 //You should have received a copy of the GNU General Public License
 // along with Rust-Witnet. If not, see <http://www.gnu.org/licenses/>.
 //
-//This file is based on pool/src/lib.rs from
+//This file is based on pool/src/pool.rs from
 // <https://github.com/mimblewimble/grin>,
 // originally developed by The Grin Developers and distributed under the
 // Apache License, Version 2.0. You may obtain a copy of the License at
 // <http://www.apache.org/licenses/LICENSE-2.0>.
 
-//! The transaction pool, keeping a view of currently-valid transactions that
-//! may be confirmed soon.
+//! Top-level Pool type, methods, and tests.
 
-#![deny(non_upper_case_globals)]
-#![deny(non_camel_case_types)]
-#![deny(non_snake_case)]
-#![deny(unused_mut)]
-#![warn(missing_docs)]
+use std::collections::HashMap;
+use std::sync::Arc;
 
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate time;
+use core::core::{hash, transaction};
+use types::*;
 
-extern crate witnet_core as core;
+/// The pool itself.
+/// The transactions HashMap holds ownership of all transactions in the pool,
+/// keyed by their transaction hash.
+pub struct TransactionPool<T> {
+    config: PoolConfig,
+    /// All transactions in the pool
+    pub transactions: HashMap<hash::Hash, Box<transaction::Transaction>>,
+    /// The pool itself
+    pub pool: Pool,
+    /// Orphans in the pool
+    pub orphans: Orphans,
 
-pub mod graph;
-mod pool;
-mod types;
-
-pub use pool::{TransactionPool};
-pub use types::{PoolAdapter};
+    // blockchain is a DummyChain, for now, which mimics what the future
+    // chain will offer to the pool
+    blockchain: Arc<T>,
+    adapter: Arc<PoolAdapter>,
+}
