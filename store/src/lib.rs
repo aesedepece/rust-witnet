@@ -25,9 +25,13 @@
 #![deny(unused_mut)]
 #![deny(missing_docs)]
 
+extern crate rocksdb;
 extern crate witnet_core as core;
 
 use std::fmt;
+use std::sync::RwLock;
+
+use rocksdb::DB;
 
 use core::ser;
 
@@ -52,4 +56,9 @@ impl fmt::Display for Error {
             &Error::SerErr(ref e) => write!(f, "Serialization Error: {}", e.to_string()),
         }
     }
+}
+
+/// Thread-safe rocksdb wrapper
+pub struct Store {
+    rdb: RwLock<DB>,
 }
