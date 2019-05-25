@@ -73,8 +73,7 @@ pub fn run_delivery() {}
 #[test]
 fn test_run_retrieval() {
     let script = vec![
-        150, 83, 204, 132, 146, 1, 164, 109, 97, 105, 110, 204, 132, 146, 1, 164, 116, 101, 109,
-        112, 204, 130,
+        150, 67, 116, 146, 1, 164, 109, 97, 105, 110, 116, 146, 1, 164, 116, 101, 109, 112, 114,
     ];
 
     let retrieve = RADRetrieve {
@@ -100,7 +99,7 @@ fn test_run_consensus_and_aggregation() {
 
     let radon_types_vec = vec![f_1, f_3];
 
-    let packed_script = [145, 146, 102, 32].to_vec();
+    let packed_script = vec![145, 146, 86, 3];
 
     let expected = RadonTypes::Float(RadonFloat::from(2f64)).try_into().ok();
 
@@ -139,6 +138,138 @@ fn test_run_retrieval_random_api() {
 
     match result {
         RadonTypes::Float(_) => {}
+        err => panic!("Error in run_retrieval: {:?}", err),
+    }
+}
+
+#[test]
+fn test_run_all_risk_premium() {
+    use std::convert::TryFrom;
+
+    let retrieve = RADRetrieve {
+        kind: RADType::HttpGet,
+        url: "https://wrapapi.com/use/aesedepece/ffzz/prima/0.0.3?wrapAPIKey=ql4DVWylABdXCpt1NUTLNEDwPH57aHGm".to_string(),
+        script: vec![145, 70],
+    };
+    let aggregate = RADAggregate {
+        script: vec![145, 146, 86, 3],
+    };
+    let tally = RADConsensus {
+        script: vec![146, 146, 86, 3, 146, 52, 204, 80],
+    };
+
+    let retrieved = run_retrieval(&retrieve).unwrap();
+    let aggregated = RadonTypes::try_from(
+        run_aggregation(vec![retrieved], &aggregate)
+            .unwrap()
+            .as_slice(),
+    )
+    .unwrap();
+    let tallied =
+        RadonTypes::try_from(run_consensus(vec![aggregated], &tally).unwrap().as_slice()).unwrap();
+
+    match tallied {
+        RadonTypes::Boolean(_) => {}
+        err => panic!("Error in run_retrieval: {:?}", err),
+    }
+}
+
+#[test]
+fn test_run_all_murders() {
+    use std::convert::TryFrom;
+
+    let retrieve = RADRetrieve {
+        kind: RADType::HttpGet,
+        url: "https://wrapapi.com/use/aesedepece/ffzz/murders/0.0.2?wrapAPIKey=ql4DVWylABdXCpt1NUTLNEDwPH57aHGm".to_string(),
+        script: vec![145, 70],
+    };
+    let aggregate = RADAggregate {
+        script: vec![145, 146, 86, 3],
+    };
+    let tally = RADConsensus {
+        script: vec![146, 146, 86, 3, 146, 52, 204, 200],
+    };
+
+    let retrieved = run_retrieval(&retrieve).unwrap();
+    let aggregated = RadonTypes::try_from(
+        run_aggregation(vec![retrieved], &aggregate)
+            .unwrap()
+            .as_slice(),
+    )
+    .unwrap();
+    let tallied =
+        RadonTypes::try_from(run_consensus(vec![aggregated], &tally).unwrap().as_slice()).unwrap();
+
+    match tallied {
+        RadonTypes::Boolean(_) => {}
+        err => panic!("Error in run_retrieval: {:?}", err),
+    }
+}
+
+#[test]
+fn test_run_all_air_quality() {
+    use std::convert::TryFrom;
+
+    let retrieve = RADRetrieve {
+        kind: RADType::HttpGet,
+        url: "http://airemadrid.herokuapp.com/api/estacion".to_string(),
+        script: vec![
+            151, 67, 112, 146, 84, 0, 146, 97, 165, 104, 111, 114, 97, 48, 116, 146, 97, 165, 118,
+            97, 108, 111, 114, 114,
+        ],
+    };
+    let aggregate = RADAggregate {
+        script: vec![145, 146, 86, 3],
+    };
+    let tally = RADConsensus {
+        script: vec![146, 146, 86, 3, 146, 52, 204, 10],
+    };
+
+    let retrieved = run_retrieval(&retrieve).unwrap();
+    let aggregated = RadonTypes::try_from(
+        run_aggregation(vec![retrieved], &aggregate)
+            .unwrap()
+            .as_slice(),
+    )
+    .unwrap();
+    let tallied =
+        RadonTypes::try_from(run_consensus(vec![aggregated], &tally).unwrap().as_slice()).unwrap();
+
+    match tallied {
+        RadonTypes::Boolean(_) => {}
+        err => panic!("Error in run_retrieval: {:?}", err),
+    }
+}
+
+#[test]
+fn test_run_all_elections() {
+    use crate::types::RadonType;
+    use std::convert::TryFrom;
+
+    let retrieve = RADRetrieve {
+        kind: RADType::HttpGet,
+        url: "https://wrapapi.com/use/aesedepece/ffzz/generales/0.0.3?wrapAPIKey=ql4DVWylABdXCpt1NUTLNEDwPH57aHGm".to_string(),
+        script: vec![148, 67, 116, 146, 97, 164, 80, 83, 79, 69, 114],
+    };
+    let aggregate = RADAggregate {
+        script: vec![145, 146, 86, 3],
+    };
+    let tally = RADConsensus {
+        script: vec![145, 146, 86, 3],
+    };
+
+    let retrieved = run_retrieval(&retrieve).unwrap();
+    let aggregated = RadonTypes::try_from(
+        run_aggregation(vec![retrieved], &aggregate)
+            .unwrap()
+            .as_slice(),
+    )
+    .unwrap();
+    let tallied =
+        RadonTypes::try_from(run_consensus(vec![aggregated], &tally).unwrap().as_slice()).unwrap();
+
+    match tallied {
+        RadonTypes::Float(radon_float) => assert_eq!(radon_float.value(), 123f64),
         err => panic!("Error in run_retrieval: {:?}", err),
     }
 }
