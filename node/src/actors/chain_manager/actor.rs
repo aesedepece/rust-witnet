@@ -183,13 +183,13 @@ impl ChainManager {
                             },
                         };
 
-                        let bootstrap_committee = chain_info
+                        let bootstrap_committee: Vec<PublicKeyHash> = chain_info
                             .consensus_constants
                             .bootstrapping_committee
                             .iter()
                             .map(|add| add.parse().expect("Malformed bootstrapping committee"))
                             .collect();
-                        let superblock_state = SuperBlockState::new(bootstrap_hash, bootstrap_committee);
+                        let superblock_state = SuperBlockState::new(bootstrap_hash, &bootstrap_committee);
 
                         ChainState {
                             chain_info: Some(chain_info),

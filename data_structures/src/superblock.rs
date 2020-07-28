@@ -1,15 +1,17 @@
-use crate::chain::{
-    BlockHeader, Bn256PublicKey, CheckpointBeacon, Hash, Hashable, PublicKeyHash, SuperBlock,
-    SuperBlockVote,
-};
 use std::{
     collections::{HashMap, HashSet},
     convert::{TryFrom, TryInto},
+    sync::Arc,
 };
 
 use serde::{Deserialize, Serialize};
 
 use witnet_crypto::{hash::Sha256, merkle::merkle_tree_root as crypto_merkle_tree_root};
+
+use crate::chain::{
+    BlockHeader, Bn256PublicKey, CheckpointBeacon, Hash, Hashable, PublicKeyHash, SuperBlock,
+    SuperBlockVote,
+};
 
 /// Possible result of SuperBlockState::add_vote
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -34,29 +36,29 @@ pub enum AddSuperBlockVote {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SuperBlockState {
     // Set of ARS identities that will be able to send superblock votes in the next superblock epoch
-    current_ars_identities: HashSet<PublicKeyHash>,
+    current_ars_identities: HashSet<Arc<PublicKeyHash>>,
     // current_ars_identities ordered by reputation
-    current_ordered_ars_identities: Vec<PublicKeyHash>,
+    current_ordered_ars_identities: Vec<Arc<PublicKeyHash>>,
     // Subset of ARS in charge of signing the next superblock
-    current_signing_committee: Option<HashSet<PublicKeyHash>>,
+    current_signing_committee: Option<HashSet<Arc<PublicKeyHash>>>,
     // Current superblock hash created by this node
     current_superblock_hash: Hash,
     // Current superblock index, used to limit the range of broadcasted votes to
     // [index - 1, index + 1]. So if index is 10, only votes with index 9, 10, 11 will be broadcasted
     current_superblock_index: u32,
     // Map of identities that voted more than once. This votes are considered invalid.
-    identities_that_voted_more_than_once: HashMap<PublicKeyHash, Vec<SuperBlockVote>>,
+    identities_that_voted_more_than_once: HashMap<Arc<PublicKeyHash>, Vec<SuperBlockVote>>,
     // Set of ARS identities that can currently send superblock votes
-    previous_ars_identities: Option<HashSet<PublicKeyHash>>,
+    previous_ars_identities: Option<HashSet<Arc<PublicKeyHash>>>,
     // previous_ars_identities ordered by reputation
-    previous_ordered_ars_identities: Vec<PublicKeyHash>,
+    previous_ordered_ars_identities: Vec<Arc<PublicKeyHash>>,
     // The last ARS ordered keys
     previous_ars_ordered_keys: Vec<Bn256PublicKey>,
     // Set of received superblock votes
     // This is cleared when we try to create a new superblock
     received_superblocks: HashSet<SuperBlockVote>,
     // Map each identity to its superblock vote
-    votes_of_each_identity: HashMap<PublicKeyHash, SuperBlockVote>,
+    votes_of_each_identity: HashMap<Arc<PublicKeyHash>, SuperBlockVote>,
     // Map of superblock_hash to votes to that superblock
     // This votes are valid according to the ARS check
     // This is cleared when we try to create a new superblock
@@ -65,8 +67,9 @@ pub struct SuperBlockState {
 
 impl SuperBlockState {
     // Initialize the superblock state
-    pub fn new(superblock_genesis_hash: Hash, bootstrap_committee: Vec<PublicKeyHash>) -> Self {
-        let hs: HashSet<PublicKeyHash> = bootstrap_committee.iter().cloned().collect();
+    pub fn new(superblock_genesis_hash: Hash, bootstrap_committee: &[PublicKeyHash]) -> Self {
+        let hs: HashSet<Arc<PublicKeyHash>> =
+            bootstrap_committee.iter().cloned().map(Arc::new).collect();
         Self {
             current_ars_identities: hs,
             current_superblock_hash: superblock_genesis_hash,
@@ -78,13 +81,13 @@ impl SuperBlockState {
     // Returns false if the identity voted more than once
     fn insert_vote(&mut self, sbv: SuperBlockVote) -> bool {
         // If the superblock vote is valid, store it
-        let pkh = sbv.secp256k1_signature.public_key.pkh();
+        let pkh = Arc::new(sbv.secp256k1_signature.public_key.pkh());
         if let Some(m) = self.identities_that_voted_more_than_once.get_mut(&pkh) {
             // This identity was already marked as bad
             m.push(sbv);
 
             false
-        } else if let Some(old_sbv) = self.votes_of_each_identity.insert(pkh, sbv.clone()) {
+        } else if let Some(old_sbv) = self.votes_of_each_identity.insert(pkh.clone(), sbv.clone()) {
             // This identity has already voted for a different superblock
             // Remove both votes and reject future votes by this identity
             let sbv = self.votes_of_each_identity.remove(&pkh).unwrap();
@@ -210,7 +213,7 @@ impl SuperBlockState {
                 self.previous_ars_identities =
                     Some(std::mem::take(&mut self.current_ars_identities));
                 self.current_ars_identities
-                    .extend(ars_pkh_keys.iter().cloned());
+                    .extend(ars_pkh_keys.iter().cloned().map(Arc::new));
                 self.previous_ars_ordered_keys = ars_ordered_bn256_keys.to_vec();
                 // For the current superblock hash, calculate the signing committee
                 self.current_signing_committee = calculate_superblock_signing_committee(
@@ -272,11 +275,11 @@ impl SuperBlockState {
 
 /// Calculates the superblock signing committee for a given superblock hash and ars
 pub fn calculate_superblock_signing_committee(
-    ars_identities: Option<HashSet<PublicKeyHash>>,
-    ordered_ars_identities: Vec<PublicKeyHash>,
+    ars_identities: Option<HashSet<Arc<PublicKeyHash>>>,
+    ordered_ars_identities: Vec<Arc<PublicKeyHash>>,
     signing_committee_size: u32,
     superblock_hash: Hash,
-) -> Option<HashSet<PublicKeyHash>> {
+) -> Option<HashSet<Arc<PublicKeyHash>>> {
     // If the number of identities is lower than committee_size all the members of the ARS sign the superblock
     if ordered_ars_identities.len() < usize::try_from(signing_committee_size).unwrap() {
         ars_identities
@@ -290,7 +293,7 @@ pub fn calculate_superblock_signing_committee(
             first.try_into().unwrap(),
             signing_committee_size.try_into().unwrap(),
         );
-        let hs: HashSet<PublicKeyHash> = subset.iter().cloned().collect();
+        let hs: HashSet<Arc<PublicKeyHash>> = subset.iter().cloned().collect();
         Some(hs)
     }
 }
@@ -363,12 +366,14 @@ pub fn hash_merkle_tree_root(hashes: &[Hash]) -> Hash {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use witnet_crypto::hash::calculate_sha256;
+
     use crate::{
         chain::{BlockMerkleRoots, Bn256SecretKey, CheckpointBeacon, PublicKey},
         vrf::BlockEligibilityClaim,
     };
-    use witnet_crypto::hash::calculate_sha256;
+
+    use super::*;
 
     #[test]
     fn test_superblock_creation_no_blocks() {
@@ -518,7 +523,7 @@ mod tests {
 
         let ars1 = vec![p1.pkh()];
         let ars2 = vec![p2.pkh()];
-        let mut sbs = SuperBlockState::new(Hash::default(), ars1);
+        let mut sbs = SuperBlockState::new(Hash::default(), &ars1);
 
         let sb1 = sbs
             .build_superblock(&block_headers, &ars2, &[], 100, 0, Hash::default())
@@ -1043,8 +1048,9 @@ mod tests {
                 genesis_hash,
             )
             .unwrap();
-        sbs.previous_ordered_ars_identities = vec![p1.pkh(), p2.pkh(), p3.pkh()];
-        sbs.previous_ars_identities = Some(ars_identities.iter().cloned().collect());
+        sbs.previous_ordered_ars_identities =
+            vec![Arc::new(p1.pkh()), Arc::new(p2.pkh()), Arc::new(p3.pkh())];
+        sbs.previous_ars_identities = Some(ars_identities.iter().cloned().map(Arc::new).collect());
         let committee_size = 4;
         let subset = calculate_superblock_signing_committee(
             sbs.previous_ars_identities,
@@ -1103,16 +1109,16 @@ mod tests {
             )
             .unwrap();
         sbs.previous_ordered_ars_identities = vec![
-            p1.pkh(),
-            p2.pkh(),
-            p3.pkh(),
-            p4.pkh(),
-            p5.pkh(),
-            p6.pkh(),
-            p7.pkh(),
-            p8.pkh(),
+            Arc::new(p1.pkh()),
+            Arc::new(p2.pkh()),
+            Arc::new(p3.pkh()),
+            Arc::new(p4.pkh()),
+            Arc::new(p5.pkh()),
+            Arc::new(p6.pkh()),
+            Arc::new(p7.pkh()),
+            Arc::new(p8.pkh()),
         ];
-        sbs.previous_ars_identities = Some(ars_identities.iter().cloned().collect());
+        sbs.previous_ars_identities = Some(ars_identities.iter().cloned().map(Arc::new).collect());
         let committee_size = 4;
         let subset = calculate_superblock_signing_committee(
             sbs.previous_ars_identities,
