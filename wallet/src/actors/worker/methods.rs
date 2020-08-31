@@ -10,6 +10,7 @@ use crate::types::{ChainEntry, CheckpointBeacon, DynamicSink, GetBlockChainParam
 use crate::{account, constants, crypto, db::Database as _, model, params};
 
 use super::*;
+use std::time::Duration;
 
 pub enum IndexTransactionQuery {
     InputTransactions(Vec<types::OutputPointer>),
@@ -268,6 +269,7 @@ impl Worker {
 
             let balance = wallet.balance()?;
             let wallet_data = wallet.public_data()?;
+            let client = self.node.get_client();
             let payload = json!({
                 "events": events.unwrap_or_default(),
                 "status": {
@@ -276,7 +278,7 @@ impl Worker {
                         "balance": balance.amount,
                     },
                     "node": {
-                        "address": self.node.address,
+                        "address": client.url,
                         "network": self.node.network,
                         "last_beacon": self.node.get_last_beacon(),
                     },
@@ -492,7 +494,8 @@ impl Worker {
             .expect("params failed serialization");
         let f = self
             .node
-            .client
+            .get_client()
+            .actor
             .send(req)
             .flatten()
             .map(|json| {
@@ -523,7 +526,8 @@ impl Worker {
             .expect("params failed serialization");
         let f = self
             .node
-            .client
+            .get_client()
+            .actor
             .send(req)
             .flatten()
             .map(|json| {
@@ -542,7 +546,7 @@ impl Worker {
     /// Try to synchronize the information for a wallet to whatever the world state is in a Witnet
     /// chain.
     pub fn sync(
-        &mut self,
+        &self,
         wallet_id: &str,
         wallet: types::SessionWallet,
         sink: types::DynamicSink,
@@ -610,8 +614,12 @@ impl Worker {
             // one we processed — hence `since_beacon.checkpoint + 1`
             let get_block_chain_future =
                 self.get_block_chain(i64::from(since_beacon.checkpoint + 1), limit);
+
+            log::debug!("BLOCKING BLOCK CHAIN FUTURE");
             let block_chain: Vec<ChainEntry> =
                 futures03::executor::block_on(get_block_chain_future)?;
+            log::debug!("UNBLOCKED BLOCK CHAIN FUTURE");
+
             let batch_size = i128::try_from((&block_chain).len()).unwrap();
             log::debug!("[SU] Received chain: {:?}", block_chain);
 
@@ -668,11 +676,7 @@ impl Worker {
     /// empty.
     /// A limit can be required on this side, but take into account that the node is not forced to
     /// honor it.
-    pub async fn get_block_chain(
-        &mut self,
-        epoch: i64,
-        limit: i64,
-    ) -> Result<Vec<types::ChainEntry>> {
+    pub async fn get_block_chain(&self, epoch: i64, limit: i64) -> Result<Vec<types::ChainEntry>> {
         log::debug!(
             "Getting block chain from epoch {} (limit = {})",
             epoch,
@@ -682,14 +686,14 @@ impl Worker {
         let method = String::from("getBlockChain");
         let params = GetBlockChainParams { epoch, limit };
         let req = types::RpcRequest::method(method)
-            .timeout(self.node.requests_timeout)
+            .timeout(Duration::from_secs(2))
             .params(params)
             .expect("params failed serialization");
 
         let f = self
             .node
             .get_client()
-            .expect("communication with JsonRpcClient failed")
+            .actor
             .send(req)
             .flatten()
             .map(|json| {
@@ -701,7 +705,7 @@ impl Worker {
             })
             .flatten()
             .map_err(|err| {
-                log::warn!("getBlockChain request failed: {}", &err);
+                log::error!("getBlockChain request failed: {}", &err);
                 err
             });
 
@@ -720,7 +724,8 @@ impl Worker {
             .expect("params failed serialization");
         let f = self
             .node
-            .client
+            .get_client()
+            .actor
             .send(req)
             .flatten()
             .map(|json| {
